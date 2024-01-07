@@ -1,17 +1,20 @@
-export function oscillator(audioContext, initialFrequency = 440, type = 'triangle', gain = 1) {
+export function oscillator(audioContext, initialFrequency = 220, type = 'triangle') {
   const oscillator = audioContext.createOscillator()
   let started = false
   oscillator.type = type
   oscillator.frequency.value = initialFrequency
 
+  // Detune range amplifier
   const gainNode = audioContext.createGain()
-  gainNode.gain.value = gain
-  oscillator.connect(gainNode)
+  gainNode.gain.value = 1000
+  gainNode.connect(oscillator.detune)
 
   return {
     inputs: [
       (node) => {
-        console.log(node)
+        node.connect(gainNode)
+      },
+      (node) => {
         node.connect(oscillator.frequency)
       },
     ],
@@ -22,7 +25,7 @@ export function oscillator(audioContext, initialFrequency = 440, type = 'triangl
           oscillator.start()
         }
       }, 0)
-      return gainNode
+      return oscillator
     },
   }
 }

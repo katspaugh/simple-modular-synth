@@ -2,11 +2,9 @@ export function noise(audioContext) {
   const gainNode = audioContext.createGain()
   gainNode.gain.value = 1
 
-  const buffer = audioContext.createBuffer(1, 1, 8000)
-  const bufferSource = audioContext.createBufferSource()
-  buffer.getChannelData(0)[0] = 1
-  bufferSource.buffer = buffer
-  bufferSource.connect(gainNode)
+  const constantSource = audioContext.createConstantSource()
+  constantSource.offset.value = 0
+  constantSource.connect(gainNode.gain)
   let started = false
 
   audioContext.audioWorklet.addModule('/modules/white-noise-processor.js').then(() => {
@@ -24,7 +22,7 @@ export function noise(audioContext) {
       setTimeout(() => {
         if (!started) {
           started = true
-          bufferSource.start()
+          constantSource.start()
         }
       }, 0)
 

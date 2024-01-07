@@ -6,6 +6,7 @@ import { vca } from './modules/vca.js'
 import { speakers } from './modules/speakers.js'
 import { cv } from './modules/cv.js'
 import { noise } from './modules/white-noise.js'
+import { lowpass } from './modules/lowpass.js'
 
 function renderModule(parentSvg, x, y, label, numInputs = 0) {
   const { width, height } = parentSvg.getBoundingClientRect()
@@ -100,6 +101,7 @@ function renderApp() {
     { x: 400, y: 100, type: envelope },
     { x: 250, y: 200, type: vca },
     { x: 400, y: 200, type: vca },
+    { x: 300, y: 300, type: lowpass },
     { x: 450, y: 300, type: speakers },
     { x: 100, y: 400, type: cv },
     { x: 250, y: 400, type: cv },
