@@ -1,4 +1,4 @@
-export function noise(audioContext) {
+export async function noise(audioContext) {
   const gainNode = audioContext.createGain()
   gainNode.gain.value = 1
 
@@ -7,14 +7,13 @@ export function noise(audioContext) {
   constantSource.connect(gainNode.gain)
   let started = false
 
-  audioContext.audioWorklet.addModule('/modules/white-noise-processor.js').then(() => {
-    const noise = new AudioWorkletNode(audioContext, 'white-noise-processor', {
-      numberOfInputs: 0,
-      numberOfOutputs: 1,
-      channelCount: 1,
-    })
-    noise.connect(gainNode)
+  await audioContext.audioWorklet.addModule('/modules/white-noise-processor.js')
+  const noise = new AudioWorkletNode(audioContext, 'white-noise-processor', {
+    numberOfInputs: 0,
+    numberOfOutputs: 1,
+    channelCount: 1,
   })
+  noise.connect(gainNode)
 
   return {
     inputs: [],

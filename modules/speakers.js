@@ -1,4 +1,4 @@
-export function speakers(audioContext) {
+export async function speakers(audioContext) {
   return {
     inputs: [
       (node) => {

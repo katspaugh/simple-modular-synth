@@ -1,4 +1,4 @@
-export function vca(audioContext) {
+export async function vca(audioContext) {
   const gainNode = audioContext.createGain()
   gainNode.gain.value = 0
 

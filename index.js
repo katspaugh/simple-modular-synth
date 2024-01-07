@@ -8,10 +8,11 @@ import { cv } from './modules/cv.js'
 import { noise } from './modules/white-noise.js'
 import { lowpass } from './modules/lowpass.js'
 
-function renderModule(parentSvg, x, y, label, numInputs = 0) {
+function renderModule(parentSvg, id, x, y, label, numInputs = 0) {
   const { width, height } = parentSvg.getBoundingClientRect()
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   g.setAttribute('transform', `translate(${x}, ${y})`)
+  g.setAttribute('id', `module-${id}`)
 
   const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
   rect.setAttribute('width', 100)
@@ -36,25 +37,25 @@ function renderModule(parentSvg, x, y, label, numInputs = 0) {
   // Render inputs
   for (let i = 0; i < numInputs; i++) {
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    circle.setAttribute('name', `input-${i}`)
     circle.setAttribute('cx', 0)
     circle.setAttribute('cy', 25 + i * 10)
     circle.setAttribute('r', 5)
     circle.setAttribute('fill', '#fff')
     circle.setAttribute('stroke', '#000')
     circle.setAttribute('stroke-width', 1)
+    circle.setAttribute('id', `module-${id}-input-${i}`)
     g.appendChild(circle)
   }
 
   // Render output
   const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-  circle.setAttribute('name', 'output')
   circle.setAttribute('cx', 100)
   circle.setAttribute('cy', 25)
   circle.setAttribute('r', 5)
   circle.setAttribute('fill', '#fff')
   circle.setAttribute('stroke', '#000')
   circle.setAttribute('stroke-width', 1)
+  circle.setAttribute('id', `module-${id}-output`)
   g.appendChild(circle)
 
   parentSvg.appendChild(g)
@@ -86,64 +87,98 @@ function renderSvg() {
   return svg
 }
 
-function renderApp() {
+async function renderApp(initialModules, initialPatchCables) {
   const audioContext = new AudioContext()
   const svg = renderSvg()
   let currentOutput
   let currentInput
 
-  const modules = [
-    { x: 100, y: 50, type: oscillator },
-    { x: 100, y: 150, type: lfo },
-    { x: 250, y: 1, type: clock },
-    { x: 400, y: 1, type: clock },
-    { x: 250, y: 100, type: envelope },
-    { x: 400, y: 100, type: envelope },
-    { x: 250, y: 200, type: vca },
-    { x: 400, y: 200, type: vca },
-    { x: 300, y: 300, type: lowpass },
-    { x: 450, y: 300, type: speakers },
-    { x: 100, y: 400, type: cv },
-    { x: 250, y: 400, type: cv },
-    { x: 400, y: 400, type: noise },
-  ]
+  const onModuleClick = (module, e) => {
+    const id = e.target.getAttribute('id')
+    if (!id) return
 
-  modules.forEach((module) => {
-    const io = module.type(audioContext)
-
-    const svgNode = renderModule(svg, module.x, module.y, module.type.name, io.inputs.length)
-
-    if (io.render) {
-      io.render(svgNode)
+    if (id.includes('input')) {
+      const inputIndex = id.split('-input-')[1]
+      currentInput = {
+        element: e.target,
+        input: module.inputs[inputIndex],
+      }
     }
 
-    svgNode.addEventListener('pointerdown', (e) => {
-      const name = e.target.getAttribute('name')
-      if (!name) return
+    if (id.includes('output')) {
+      currentOutput = {
+        element: e.target,
+        output: module.output,
+      }
+    }
 
-      if (name.startsWith('input')) {
-        const inputIndex = name.split('-')[1]
-        currentInput = {
-          element: e.target,
-          input: io.inputs[inputIndex],
-        }
+    if (currentInput && currentOutput) {
+      renderPatchCable(svg, currentOutput.element, currentInput.element)
+      currentInput.input(currentOutput.output())
+      currentInput = null
+      currentOutput = null
+    }
+  }
+
+  const modules = await Promise.all(
+    initialModules.map(async (module) => {
+      const mod = await module.type(audioContext)
+
+      const svgNode = renderModule(svg, module.id, module.x, module.y, module.type.name, mod.inputs.length)
+
+      if (mod.render) {
+        mod.render(svgNode)
       }
 
-      if (name === 'output') {
-        currentOutput = {
-          element: e.target,
-          output: io.output,
-        }
-      }
+      svgNode.addEventListener('pointerdown', (e) => onModuleClick(mod, e))
 
-      if (currentInput && currentOutput) {
-        renderPatchCable(svg, currentOutput.element, currentInput.element)
-        currentInput.input(currentOutput.output())
-        currentInput = null
-        currentOutput = null
+      return {
+        id: module.id,
+        ...mod,
       }
-    })
+    }),
+  )
+
+  initialPatchCables.forEach((cable) => {
+    const fromEl = document.querySelector(`#module-${cable.from}`)
+    const toEl = document.querySelector(`#module-${cable.to}`)
+    renderPatchCable(svg, fromEl, toEl)
+    const outputModuleId = cable.from.split('-output')[0]
+    const [inputModuleId, inputIndex] = cable.to.split('-input-')
+    const inputModule = modules.find((m) => m.id === inputModuleId)
+    const outputModule = modules.find((m) => m.id === outputModuleId)
+    console.log(inputModule, outputModule)
+    inputModule.inputs[inputIndex](outputModule.output())
+  })
+
+  document.addEventListener('click', (e) => {
+    if (audioContext.state === 'suspended') {
+      audioContext.resume()
+    }
   })
 }
 
-renderApp()
+renderApp(
+  [
+    { id: '0', x: 100, y: 50, type: oscillator },
+    { id: '1', x: 100, y: 150, type: lfo },
+    { id: '2', x: 250, y: 1, type: clock },
+    { id: '3', x: 400, y: 1, type: clock },
+    { id: '4', x: 250, y: 100, type: envelope },
+    { id: '5', x: 400, y: 100, type: envelope },
+    { id: '6', x: 250, y: 200, type: vca },
+    { id: '7', x: 400, y: 200, type: vca },
+    { id: '8', x: 300, y: 300, type: lowpass },
+    { id: '9', x: 450, y: 300, type: speakers },
+    { id: '10', x: 100, y: 400, type: cv },
+    { id: '11', x: 250, y: 400, type: cv },
+    { id: '12', x: 400, y: 400, type: noise },
+  ],
+  [
+    { from: '0-output', to: '8-input-0' },
+    { from: '8-output', to: '7-input-0' },
+    { from: '5-output', to: '7-input-1' },
+    { from: '7-output', to: '9-input-0' },
+    { from: '2-output', to: '5-input-0' },
+  ],
+)

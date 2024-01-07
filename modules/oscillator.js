@@ -1,4 +1,4 @@
-export function oscillator(audioContext, initialFrequency = 220, type = 'triangle') {
+export async function oscillator(audioContext, initialFrequency = 220, type = 'triangle') {
   const oscillator = audioContext.createOscillator()
   let started = false
   oscillator.type = type

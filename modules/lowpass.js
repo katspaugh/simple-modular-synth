@@ -1,4 +1,4 @@
-export function lowpass(audioContext, freq = 300) {
+export async function lowpass(audioContext, freq = 300) {
   const filter = audioContext.createBiquadFilter()
   filter.type = 'lowpass'
   filter.frequency.value = freq
