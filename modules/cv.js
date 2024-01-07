@@ -17,7 +17,7 @@ function renderInput(svgNode, initialValue, setValue) {
   svgNode.appendChild(foreignObject)
 }
 
-export async function cv(audioContext, initialValue = 100) {
+export function cv(audioContext, initialValue = 100) {
   const constantSource = audioContext.createConstantSource()
   constantSource.offset.value = initialValue
   constantSource.start()

@@ -1,23 +1,15 @@
-export async function oscillator(audioContext, initialFrequency = 220, type = 'triangle') {
+export function oscillator(audioContext, initialFrequency = 220, type = 'triangle') {
   const oscillator = audioContext.createOscillator()
   let started = false
   oscillator.type = type
   oscillator.frequency.value = initialFrequency
 
-  // Detune range amplifier
-  const gainNode = audioContext.createGain()
-  gainNode.gain.value = 1000
-  gainNode.connect(oscillator.detune)
+  const freqGainNode = audioContext.createGain()
+  freqGainNode.gain.value = 1000
+  freqGainNode.connect(oscillator.frequency)
 
   return {
-    inputs: [
-      (node) => {
-        node.connect(gainNode)
-      },
-      (node) => {
-        node.connect(oscillator.frequency)
-      },
-    ],
+    inputs: [(node) => freqGainNode],
     output: () => {
       setTimeout(() => {
         if (!started) {

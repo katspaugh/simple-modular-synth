@@ -1,10 +1,6 @@
-export async function speakers(audioContext) {
+export function speakers(audioContext) {
   return {
-    inputs: [
-      (node) => {
-        node.connect(audioContext.destination)
-      },
-    ],
+    inputs: [() => audioContext.destination],
     output: () => audioContext.destination,
   }
 }

@@ -15,16 +15,9 @@ export async function envelope(audioContext) {
 
   return {
     inputs: [
-      // Trigger
-      (node) => {
-        node.connect(adsrNode.parameters.get('trigger'))
-      },
-      (attack) => {
-        adsrNode.parameters.get('attack').setValueAtTime(attack, audioContext.currentTime)
-      },
-      (release) => {
-        adsrNode.parameters.get('release').setValueAtTime(release, audioContext.currentTime)
-      },
+      () => adsrNode.parameters.get('trigger'),
+      () => adsrNode.parameters.get('attack'),
+      () => adsrNode.parameters.get('release'),
     ],
     output: () => adsrNode,
   }

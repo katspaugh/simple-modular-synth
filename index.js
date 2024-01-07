@@ -7,6 +7,7 @@ import { speakers } from './modules/speakers.js'
 import { cv } from './modules/cv.js'
 import { noise } from './modules/white-noise.js'
 import { lowpass } from './modules/lowpass.js'
+import { highpass } from './modules/highpass.js'
 
 function renderModule(parentSvg, id, x, y, label, numInputs = 0) {
   const { width, height } = parentSvg.getBoundingClientRect()
@@ -63,19 +64,20 @@ function renderModule(parentSvg, id, x, y, label, numInputs = 0) {
 }
 
 function renderPatchCable(parentSvg, fromEl, toEl) {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  path.setAttribute('fill', 'none')
+  path.setAttribute('stroke', '#000')
+  path.setAttribute('stroke-width', 1)
+  path.setAttribute('transform', 'translate(-7, -7)')
+
   const fromPoint = fromEl.getBoundingClientRect()
   const toPoint = toEl.getBoundingClientRect()
   const fromX = fromPoint.left + fromPoint.width / 2
   const fromY = fromPoint.top + fromPoint.height / 2
   const toX = toPoint.left + toPoint.width / 2
   const toY = toPoint.top + toPoint.height / 2
-  // Create a bezier curve from the center of the from circle to the center of the to circle
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   path.setAttribute('d', `M ${fromX} ${fromY} C ${fromX + 100} ${fromY} ${toX - 100} ${toY} ${toX} ${toY}`)
-  path.setAttribute('fill', 'none')
-  path.setAttribute('stroke', '#000')
-  path.setAttribute('stroke-width', 1)
-  path.setAttribute('transform', 'translate(-7, -7)')
+
   parentSvg.appendChild(path)
 }
 
@@ -83,6 +85,7 @@ function renderSvg() {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('width', 800)
   svg.setAttribute('height', 600)
+  svg.style.userSelect = 'none'
   document.body.appendChild(svg)
   return svg
 }
@@ -93,9 +96,17 @@ async function renderApp(initialModules, initialPatchCables) {
   let currentOutput
   let currentInput
 
-  const onModuleClick = (module, e) => {
+  const onPointerDown = (module, e) => {
     const id = e.target.getAttribute('id')
     if (!id) return
+
+    if (currentOutput) {
+      currentOutput.element.style.fill = ''
+    }
+
+    if (currentInput) {
+      currentInput.element.style.fill = ''
+    }
 
     if (id.includes('input')) {
       const inputIndex = id.split('-input-')[1]
@@ -114,9 +125,11 @@ async function renderApp(initialModules, initialPatchCables) {
 
     if (currentInput && currentOutput) {
       renderPatchCable(svg, currentOutput.element, currentInput.element)
-      currentInput.input(currentOutput.output())
+      currentOutput.output().connect(currentInput.input())
       currentInput = null
       currentOutput = null
+    } else {
+      e.target.style.fill = '#f00'
     }
   }
 
@@ -130,7 +143,7 @@ async function renderApp(initialModules, initialPatchCables) {
         mod.render(svgNode)
       }
 
-      svgNode.addEventListener('pointerdown', (e) => onModuleClick(mod, e))
+      svgNode.addEventListener('pointerdown', (e) => onPointerDown(mod, e))
 
       return {
         id: module.id,
@@ -147,8 +160,7 @@ async function renderApp(initialModules, initialPatchCables) {
     const [inputModuleId, inputIndex] = cable.to.split('-input-')
     const inputModule = modules.find((m) => m.id === inputModuleId)
     const outputModule = modules.find((m) => m.id === outputModuleId)
-    console.log(inputModule, outputModule)
-    inputModule.inputs[inputIndex](outputModule.output())
+    outputModule.output().connect(inputModule.inputs[inputIndex]())
   })
 
   document.addEventListener('click', (e) => {
@@ -173,6 +185,7 @@ renderApp(
     { id: '10', x: 100, y: 400, type: cv },
     { id: '11', x: 250, y: 400, type: cv },
     { id: '12', x: 400, y: 400, type: noise },
+    { id: '13', x: 150, y: 300, type: highpass },
   ],
   [
     { from: '0-output', to: '8-input-0' },
