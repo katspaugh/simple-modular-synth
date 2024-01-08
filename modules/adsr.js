@@ -1,4 +1,6 @@
-export async function envelope(audioContext) {
+import { range } from '../ui/range.js'
+
+export async function adsr(audioContext) {
   await audioContext.audioWorklet.addModule('/modules/adsr-processor.js')
   const adsrNode = new AudioWorkletNode(audioContext, 'adsr-processor', {
     numberOfInputs: 0,
@@ -13,12 +15,19 @@ export async function envelope(audioContext) {
     },
   })
 
+  const triggerParam = adsrNode.parameters.get('trigger')
+  const attackParam = adsrNode.parameters.get('attack')
+  const releaseParam = adsrNode.parameters.get('release')
+
   return {
-    inputs: [
-      () => adsrNode.parameters.get('trigger'),
-      () => adsrNode.parameters.get('attack'),
-      () => adsrNode.parameters.get('release'),
-    ],
+    label: 'envelope',
+    inputs: [() => triggerParam, () => attackParam, () => releaseParam],
     output: () => adsrNode,
+    render: () => {
+      const S = 100
+      const attack = range(attackParam.value * S, (newValue) => (attackParam.value = newValue / S), 0, S, 1)
+      const release = range(releaseParam.value * S, (newValue) => (releaseParam.value = newValue / S), 0, S, 1)
+      return [attack, release]
+    },
   }
 }

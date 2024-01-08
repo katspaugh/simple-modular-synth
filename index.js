@@ -1,13 +1,14 @@
 import { oscillator } from './modules/oscillator.js'
 import { lfo } from './modules/lfo.js'
 import { clock } from './modules/clock.js'
-import { envelope } from './modules/adsr.js'
+import { adsr } from './modules/adsr.js'
 import { vca } from './modules/vca.js'
 import { speakers } from './modules/speakers.js'
 import { cv } from './modules/cv.js'
 import { noise } from './modules/white-noise.js'
 import { lowpass } from './modules/lowpass.js'
 import { highpass } from './modules/highpass.js'
+import { sampleAndHold } from './modules/sample-and-hold.js'
 
 function renderModule(parentSvg, id, x, y, label, numInputs = 0) {
   const { width, height } = parentSvg.getBoundingClientRect()
@@ -27,7 +28,8 @@ function renderModule(parentSvg, id, x, y, label, numInputs = 0) {
   if (label) {
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
     text.setAttribute('x', 50)
-    text.setAttribute('y', 25)
+    text.setAttribute('y', 10)
+    text.setAttribute('font-size', 12)
     text.setAttribute('text-anchor', 'middle')
     text.setAttribute('alignment-baseline', 'middle')
     text.setAttribute('fill', '#000')
@@ -90,6 +92,27 @@ function renderSvg() {
   return svg
 }
 
+function renderForeignObject(svgNode, children) {
+  const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
+  foreignObject.setAttribute('width', 80)
+  foreignObject.setAttribute('height', 35)
+  foreignObject.setAttribute('x', 10)
+  foreignObject.setAttribute('y', 15)
+  const div = document.createElement('div')
+  Object.assign(div.style, {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+  })
+  children = Array.isArray(children) ? children : [children]
+  children.forEach((el) => div.appendChild(el))
+  foreignObject.appendChild(div)
+  svgNode.appendChild(foreignObject)
+}
+
 async function renderApp(initialModules, initialPatchCables) {
   const audioContext = new AudioContext()
   const svg = renderSvg()
@@ -137,10 +160,10 @@ async function renderApp(initialModules, initialPatchCables) {
     initialModules.map(async (module) => {
       const mod = await module.type(audioContext)
 
-      const svgNode = renderModule(svg, module.id, module.x, module.y, module.type.name, mod.inputs.length)
+      const svgNode = renderModule(svg, module.id, module.x, module.y, mod.label || module.type.name, mod.inputs.length)
 
       if (mod.render) {
-        mod.render(svgNode)
+        renderForeignObject(svgNode, mod.render())
       }
 
       svgNode.addEventListener('pointerdown', (e) => onPointerDown(mod, e))
@@ -172,26 +195,33 @@ async function renderApp(initialModules, initialPatchCables) {
 
 renderApp(
   [
-    { id: '0', x: 100, y: 50, type: oscillator },
-    { id: '1', x: 100, y: 150, type: lfo },
-    { id: '2', x: 250, y: 1, type: clock },
-    { id: '3', x: 400, y: 1, type: clock },
-    { id: '4', x: 250, y: 100, type: envelope },
-    { id: '5', x: 400, y: 100, type: envelope },
-    { id: '6', x: 250, y: 200, type: vca },
-    { id: '7', x: 400, y: 200, type: vca },
-    { id: '8', x: 300, y: 300, type: lowpass },
-    { id: '9', x: 450, y: 300, type: speakers },
-    { id: '10', x: 100, y: 400, type: cv },
-    { id: '11', x: 250, y: 400, type: cv },
-    { id: '12', x: 400, y: 400, type: noise },
-    { id: '13', x: 150, y: 300, type: highpass },
+    { id: 'osc-0', x: 100, y: 50, type: oscillator },
+    { id: 'lfo-0', x: 100, y: 125, type: lfo },
+    { id: 'clock-0', x: 250, y: 1, type: clock },
+    { id: 'clock-1', x: 400, y: 1, type: clock },
+    { id: 'adsr-0', x: 250, y: 100, type: adsr },
+    { id: 'adsr-1', x: 400, y: 100, type: adsr },
+    { id: 'vca-0', x: 250, y: 200, type: vca },
+    { id: 'vca-1', x: 400, y: 200, type: vca },
+    { id: 'lowpass-0', x: 300, y: 300, type: lowpass },
+    { id: 'speakers-0', x: 450, y: 300, type: speakers },
+    { id: 'cv-0', x: 100, y: 400, type: cv },
+    { id: 'cv-1', x: 250, y: 400, type: cv },
+    { id: 'noise-0', x: 400, y: 400, type: noise },
+    { id: 'highpass-0', x: 150, y: 300, type: highpass },
+    { id: 'sampleAndHold-0', x: 100, y: 200, type: sampleAndHold },
   ],
   [
-    { from: '0-output', to: '8-input-0' },
-    { from: '8-output', to: '7-input-0' },
-    { from: '5-output', to: '7-input-1' },
-    { from: '7-output', to: '9-input-0' },
-    { from: '2-output', to: '5-input-0' },
+    { from: 'osc-0-output', to: 'lowpass-0-input-0' },
+    { from: 'adsr-0-output', to: 'vca-0-input-1' },
+    { from: 'clock-0-output', to: 'adsr-0-input-0' },
+    { from: 'lowpass-0-output', to: 'vca-0-input-0' },
+    { from: 'vca-0-output', to: 'speakers-0-input-0' },
+    { from: 'lfo-0-output', to: 'cv-0-input-0' },
+    { from: 'cv-0-output', to: 'lowpass-0-input-1' },
+    { from: 'noise-0-output', to: 'sampleAndHold-0-input-0' },
+    { from: 'sampleAndHold-0-output', to: 'osc-0-input-0' },
+    { from: 'clock-0-output', to: 'sampleAndHold-0-input-1' },
+    { from: 'clock-1-output', to: 'lfo-0-input-0' },
   ],
 )
