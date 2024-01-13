@@ -8,8 +8,7 @@ export function range(initialValue, setValue, min, max, step) {
   input.placeholder = initialValue.toString()
 
   Object.assign(input.style, {
-    width: '100%',
-    height: '100%',
+    width: '90%',
     margin: '0 auto',
     display: 'block',
     boxSizing: 'border-box',

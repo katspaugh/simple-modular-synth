@@ -4,8 +4,50 @@
     <meta charset="UTF-8">
     <title>Simple Modular Synth</title>
     <style>
-      circle:hover {
-        fill: #aaf;
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background-size: 30px 30px;
+        background-image: radial-gradient(circle, #ddd 1px, transparent 1px);
+      }
+      .module {
+        width: 100px;
+        height: 50px;
+        background-color: #fafafa;
+        border-radius: 4px;
+        padding: 10px;
+        position: absolute;
+        z-index: 1;
+        text-align: center;
+        border: 1px solid #aaa;
+      }
+      .module button {
+        display: block;
+        position: absolute;
+        z-index: 3;
+        border-radius: 100%;
+        padding: 0;
+        width: 10px;
+        height: 10px;
+        border: none;
+        background-color: #faa;
+      }
+      .module button:hover {
+        background-color: #aaf;
+      }
+      svg {
+        position: absolute;
+        z-index: 2;
+        pointer-events: none;
+      }
+      path {
+        fill: none;
+        stroke: #aaa;
+        stroke-width: 1px;
       }
     </style>
 <body>

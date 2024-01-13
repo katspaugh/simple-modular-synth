@@ -1,3 +1,5 @@
+import { renderSvg, renderModule, renderPatchCable, renderContent, dragModule } from './render.js'
+// Web Audio modules
 import { oscillator } from './modules/oscillator.js'
 import { lfo } from './modules/lfo.js'
 import { clock } from './modules/clock.js'
@@ -10,112 +12,9 @@ import { lowpass } from './modules/lowpass.js'
 import { highpass } from './modules/highpass.js'
 import { sampleAndHold } from './modules/sample-and-hold.js'
 
-function renderModule(parentSvg, id, x, y, label, numInputs = 0) {
-  const { width, height } = parentSvg.getBoundingClientRect()
-  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  g.setAttribute('transform', `translate(${x}, ${y})`)
-  g.setAttribute('id', `module-${id}`)
-
-  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-  rect.setAttribute('width', 100)
-  rect.setAttribute('height', 50)
-  rect.setAttribute('fill', '#fff')
-  rect.setAttribute('stroke', '#000')
-  rect.setAttribute('stroke-width', 1)
-  g.appendChild(rect)
-
-  // Render label
-  if (label) {
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    text.setAttribute('x', 50)
-    text.setAttribute('y', 10)
-    text.setAttribute('font-size', 12)
-    text.setAttribute('text-anchor', 'middle')
-    text.setAttribute('alignment-baseline', 'middle')
-    text.setAttribute('fill', '#000')
-    text.textContent = label
-    g.appendChild(text)
-  }
-
-  // Render inputs
-  for (let i = 0; i < numInputs; i++) {
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    circle.setAttribute('cx', 0)
-    circle.setAttribute('cy', 25 + i * 10)
-    circle.setAttribute('r', 5)
-    circle.setAttribute('fill', '#fff')
-    circle.setAttribute('stroke', '#000')
-    circle.setAttribute('stroke-width', 1)
-    circle.setAttribute('id', `module-${id}-input-${i}`)
-    g.appendChild(circle)
-  }
-
-  // Render output
-  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-  circle.setAttribute('cx', 100)
-  circle.setAttribute('cy', 25)
-  circle.setAttribute('r', 5)
-  circle.setAttribute('fill', '#fff')
-  circle.setAttribute('stroke', '#000')
-  circle.setAttribute('stroke-width', 1)
-  circle.setAttribute('id', `module-${id}-output`)
-  g.appendChild(circle)
-
-  parentSvg.appendChild(g)
-  return g
-}
-
-function renderPatchCable(parentSvg, fromEl, toEl) {
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  path.setAttribute('fill', 'none')
-  path.setAttribute('stroke', '#000')
-  path.setAttribute('stroke-width', 1)
-  path.setAttribute('transform', 'translate(-7, -7)')
-
-  const fromPoint = fromEl.getBoundingClientRect()
-  const toPoint = toEl.getBoundingClientRect()
-  const fromX = fromPoint.left + fromPoint.width / 2
-  const fromY = fromPoint.top + fromPoint.height / 2
-  const toX = toPoint.left + toPoint.width / 2
-  const toY = toPoint.top + toPoint.height / 2
-  path.setAttribute('d', `M ${fromX} ${fromY} C ${fromX + 100} ${fromY} ${toX - 100} ${toY} ${toX} ${toY}`)
-
-  parentSvg.appendChild(path)
-}
-
-function renderSvg() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute('width', 800)
-  svg.setAttribute('height', 600)
-  svg.style.userSelect = 'none'
-  document.body.appendChild(svg)
-  return svg
-}
-
-function renderForeignObject(svgNode, children) {
-  const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
-  foreignObject.setAttribute('width', 80)
-  foreignObject.setAttribute('height', 35)
-  foreignObject.setAttribute('x', 10)
-  foreignObject.setAttribute('y', 15)
-  const div = document.createElement('div')
-  Object.assign(div.style, {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-  })
-  children = Array.isArray(children) ? children : [children]
-  children.forEach((el) => div.appendChild(el))
-  foreignObject.appendChild(div)
-  svgNode.appendChild(foreignObject)
-}
-
 async function renderApp(initialModules, initialPatchCables) {
   const audioContext = new AudioContext()
-  const svg = renderSvg()
+  const svg = renderSvg(document.body)
   let currentOutput
   let currentInput
 
@@ -160,17 +59,25 @@ async function renderApp(initialModules, initialPatchCables) {
     initialModules.map(async (module) => {
       const mod = await module.type(audioContext)
 
-      const svgNode = renderModule(svg, module.id, module.x, module.y, mod.label || module.type.name, mod.inputs.length)
+      const container = renderModule(
+        document.body,
+        module.id,
+        module.x,
+        module.y,
+        mod.label || module.type.name,
+        mod.inputs.length,
+      )
 
       if (mod.render) {
-        renderForeignObject(svgNode, mod.render())
+        renderContent(container, mod.render())
       }
 
-      svgNode.addEventListener('pointerdown', (e) => onPointerDown(mod, e))
+      container.addEventListener('pointerdown', (e) => onPointerDown(mod, e))
 
       return {
-        id: module.id,
         ...mod,
+        id: module.id,
+        container,
       }
     }),
   )
