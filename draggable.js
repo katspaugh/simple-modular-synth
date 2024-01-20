@@ -1,10 +1,10 @@
-export function makeDraggable(element, onDrag, onStart, onEnd, threshold = 3, mouseButton = 0) {
+export function makeDraggable(element, onDrag, onStart, onEnd, threshold = 3) {
   if (!element) return () => void 0
 
   let unsubscribeDocument = () => void 0
 
   const onPointerDown = (event) => {
-    if (event.button !== mouseButton) return
+    if (event.currentTarget !== event.target) return
 
     event.preventDefault()
     event.stopPropagation()
@@ -45,13 +45,6 @@ export function makeDraggable(element, onDrag, onStart, onEnd, threshold = 3, mo
       unsubscribeDocument()
     }
 
-    const onClick = (event) => {
-      if (isDragging) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-    }
-
     const onTouchMove = (event) => {
       if (isDragging) {
         event.preventDefault()
@@ -61,15 +54,11 @@ export function makeDraggable(element, onDrag, onStart, onEnd, threshold = 3, mo
     document.addEventListener('pointermove', onPointerMove)
     document.addEventListener('pointerup', onPointerUp)
     document.addEventListener('touchmove', onTouchMove, { passive: false })
-    document.addEventListener('click', onClick, { capture: true })
 
     unsubscribeDocument = () => {
       document.removeEventListener('pointermove', onPointerMove)
       document.removeEventListener('pointerup', onPointerUp)
       document.removeEventListener('touchmove', onTouchMove)
-      setTimeout(() => {
-        document.removeEventListener('click', onClick, { capture: true })
-      }, 10)
     }
   }
 

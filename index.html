@@ -10,10 +10,6 @@
         margin: 0;
         padding: 0;
       }
-      body {
-        background-size: 30px 30px;
-        background-image: radial-gradient(circle, #ddd 1px, transparent 1px);
-      }
       .module {
         width: 100px;
         height: 50px;
@@ -31,13 +27,29 @@
         z-index: 3;
         border-radius: 100%;
         padding: 0;
-        width: 10px;
-        height: 10px;
+        width: 16px;
+        height: 16px;
+        margin-left: -8px;
         border: none;
         background-color: #faa;
       }
       .module button:hover {
         background-color: #aaf;
+      }
+      .module button.active {
+        background-color: #f00;
+      }
+      .module input {
+        width: 90%;
+      }
+      .module input[readonly],
+      .module input[readonly]:focus {
+        background-color: transparent;
+        border: none;
+        text-align: center;
+        user-select: none;
+        pointer-events: none;
+        outline: none;
       }
       svg {
         position: absolute;
@@ -49,8 +61,30 @@
         stroke: #aaa;
         stroke-width: 1px;
       }
+
+      body {
+        display: flex;
+        flex-wrap: nowrap;
+        height: 100vh;
+      }
+      #graph {
+        flex: 1;
+        height: 100vh;
+        background-size: 30px 30px;
+        background-image: radial-gradient(circle, #eee 1px, transparent 1px);
+      }
+      #sidebar {
+        flex: 0 0 300px;
+        background-color: #eee;
+        padding: 10px;
+        overflow-y: scroll;
+      }
     </style>
-<body>
-</body>
-<script type="module" src="./index.js"></script>
+  </head>
+
+  <body>
+    <div id="graph"></div>
+    <div id="sidebar"></div>
+    <script type="module" src="./index.js"></script>
+  </body>
 </html>

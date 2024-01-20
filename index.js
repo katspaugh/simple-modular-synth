@@ -1,20 +1,44 @@
 import { renderGraph } from './flow.js'
-
-// Web Audio modules
-import { oscillator } from './modules/oscillator.js'
-import { lfo } from './modules/lfo.js'
-import { clock } from './modules/clock.js'
-import { adsr } from './modules/adsr.js'
-import { vca } from './modules/vca.js'
-import { speakers } from './modules/speakers.js'
-import { cv } from './modules/cv.js'
-import { noise } from './modules/white-noise.js'
-import { lowpass } from './modules/lowpass.js'
-import { highpass } from './modules/highpass.js'
-import { sampleAndHold } from './modules/sample-and-hold.js'
+import { initSidebar } from './sidebar.js'
+import * as allModules from './modules.js'
 
 async function renderApp(initialModules, initialPatchCables) {
   const audioContext = new AudioContext()
+  let modules = []
+  let connections = []
+
+  const createModule = async ({ type, x, y, id = `${type}-${Date.now()}` }) => {
+    if (!allModules[type]) {
+      throw new Error(`Module not found: ${type}`)
+    }
+
+    const mod = await allModules[type](audioContext)
+
+    graph.renderModule({
+      id,
+      x,
+      y,
+      label: mod.label || allModules[type].name,
+      inputsCount: mod.inputs.length,
+      children: mod.render ? mod.render() : undefined,
+    })
+
+    return {
+      ...mod,
+      type,
+      id,
+      x,
+      y,
+    }
+  }
+
+  const updateUrl = () => {
+    const data = {
+      modules: modules.map(({ id, type, x, y }) => ({ id, type, x, y })),
+      connections,
+    }
+    window.location.hash = btoa(JSON.stringify(data))
+  }
 
   const onConnect = (inputId, outputId) => {
     const [inputModuleId, inputIndex] = inputId.split('-input-')
@@ -25,29 +49,23 @@ async function renderApp(initialModules, initialPatchCables) {
       throw new Error(`Module not found: ${inputModuleId} or ${outputModuleId}`)
     }
     outputModule.output().connect(inputModule.inputs[inputIndex]())
+
+    connections.push({ from: outputId, to: inputId })
+
+    updateUrl()
   }
 
-  const graph = renderGraph(document.body, onConnect)
+  const onAddModule = async (module) => {
+    const mod = await createModule(module)
+    modules.push(mod)
+    updateUrl()
+    return mod
+  }
 
-  const modules = await Promise.all(
-    initialModules.map(async (module) => {
-      const mod = await module.type(audioContext)
+  const graph = renderGraph(document.querySelector('#graph'), Object.keys(allModules), onConnect, onAddModule)
+  initSidebar(document.querySelector('#sidebar'))
 
-      graph.renderModule({
-        id: module.id,
-        x: module.x,
-        y: module.y,
-        label: mod.label || module.type.name,
-        inputsCount: mod.inputs.length,
-        children: mod.render ? mod.render() : undefined,
-      })
-
-      return {
-        ...mod,
-        id: module.id,
-      }
-    }),
-  )
+  modules = await Promise.all(initialModules.map(onAddModule))
 
   initialPatchCables.forEach((cable) => {
     const fromEl = document.querySelector(`#${cable.from}`)
@@ -64,23 +82,24 @@ async function renderApp(initialModules, initialPatchCables) {
   })
 }
 
+/*
 renderApp(
   [
-    { id: 'osc-0', x: 50, y: 50, type: oscillator },
-    { id: 'lfo-0', x: 50, y: 125, type: lfo },
-    { id: 'clock-0', x: 300, y: 10, type: clock },
-    { id: 'clock-1', x: 600, y: 10, type: clock },
-    { id: 'adsr-0', x: 300, y: 100, type: adsr },
-    { id: 'adsr-1', x: 600, y: 100, type: adsr },
-    { id: 'vca-0', x: 300, y: 200, type: vca },
-    { id: 'vca-1', x: 600, y: 200, type: vca },
-    { id: 'lowpass-0', x: 400, y: 300, type: lowpass },
-    { id: 'speakers-0', x: 700, y: 300, type: speakers },
-    { id: 'cv-0', x: 50, y: 400, type: cv },
-    { id: 'cv-1', x: 300, y: 400, type: cv },
-    { id: 'noise-0', x: 600, y: 400, type: noise },
-    { id: 'highpass-0', x: 100, y: 300, type: highpass },
-    { id: 'sampleAndHold-0', x: 50, y: 200, type: sampleAndHold },
+    { id: 'osc-0', x: 50, y: 50, type: 'oscillator' },
+    { id: 'lfo-0', x: 50, y: 125, type: 'lfo' },
+    { id: 'clock-0', x: 300, y: 10, type: 'clock' },
+    { id: 'clock-1', x: 600, y: 10, type: 'clock' },
+    { id: 'adsr-0', x: 300, y: 100, type: 'adsr' },
+    { id: 'adsr-1', x: 600, y: 100, type: 'adsr' },
+    { id: 'vca-0', x: 300, y: 200, type: 'vca' },
+    { id: 'vca-1', x: 600, y: 200, type: 'vca' },
+    { id: 'lowpass-0', x: 400, y: 300, type: 'lowpass' },
+    { id: 'speakers-0', x: 700, y: 300, type: 'speakers' },
+    { id: 'cv-0', x: 50, y: 400, type: 'cv' },
+    { id: 'cv-1', x: 300, y: 400, type: 'cv' },
+    { id: 'noise-0', x: 600, y: 400, type: 'noise' },
+    { id: 'highpass-0', x: 100, y: 300, type: 'highpass' },
+    { id: 'sampleAndHold-0', x: 50, y: 200, type: 'sampleAndHold' },
   ],
   [
     { from: 'osc-0-output', to: 'lowpass-0-input-0' },
@@ -96,3 +115,12 @@ renderApp(
     { from: 'clock-1-output', to: 'lfo-0-input-0' },
   ],
 )
+*/
+
+const hash = window.location.hash.slice(1)
+if (hash) {
+  const data = JSON.parse(atob(hash))
+  renderApp(data.modules, data.connections)
+} else {
+  renderApp([{ id: 'speakers-0', x: 700, y: 50, type: 'speakers' }], [])
+}

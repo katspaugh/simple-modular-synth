@@ -20,7 +20,6 @@ export async function adsr(audioContext) {
   const releaseParam = adsrNode.parameters.get('release')
 
   return {
-    label: 'envelope',
     inputs: [() => triggerParam, () => attackParam, () => releaseParam],
     output: () => adsrNode,
     render: () => {

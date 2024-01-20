@@ -9,19 +9,20 @@ export function renderModule(parentEl, id, x, y, label, numInputs = 0) {
   })
 
   // Render label
+  const input = document.createElement('input')
   if (label) {
-    const span = document.createElement('span')
-    span.textContent = label
-    div.appendChild(span)
+    input.value = label
+    input.setAttribute('readonly', 'readonly')
   }
+  div.appendChild(input)
 
   // Render inputs
   const inputs = []
   for (let i = 0; i < numInputs; i++) {
     const button = document.createElement('button')
     Object.assign(button.style, {
-      left: '-5px',
-      top: `${(i + 1) * 20}px`,
+      left: '0',
+      top: `${i * 20 + 8}px`,
     })
     button.setAttribute('id', `${id}-input-${i}`)
     div.appendChild(button)
@@ -31,7 +32,7 @@ export function renderModule(parentEl, id, x, y, label, numInputs = 0) {
   // Render output
   const button = document.createElement('button')
   Object.assign(button.style, {
-    right: '-5px',
+    left: '100%',
     top: '50%',
     transform: 'translateY(-50%)',
   })
@@ -40,7 +41,7 @@ export function renderModule(parentEl, id, x, y, label, numInputs = 0) {
 
   parentEl.appendChild(div)
 
-  return [div, inputs, button]
+  return [div, inputs, button, input]
 }
 
 export function dragModule(moduleEl, onDrag) {
@@ -59,10 +60,10 @@ export function dragModule(moduleEl, onDrag) {
 
 export function renderSvg(parentEl) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute('width', '100%')
-  svg.setAttribute('height', '100%')
-  const width = window.innerWidth
-  const height = window.innerHeight
+  const width = parentEl.offsetWidth
+  const height = parentEl.offsetHeight
+  svg.setAttribute('width', `${width}px`)
+  svg.setAttribute('height', `${height}px`)
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
   svg.setAttribute('preserveAspectRatio', 'none')
   svg.setAttribute('pointer-events', 'none')
@@ -90,4 +91,14 @@ export function renderPatchCable(parentSvg, fromEl, toEl) {
 export function renderContent(parentEl, children) {
   children = Array.isArray(children) ? children : [children]
   children.forEach((el) => parentEl.appendChild(el))
+}
+
+export function renderDatalist(options) {
+  const datalist = document.createElement('datalist')
+  options.forEach((option) => {
+    const optionEl = document.createElement('option')
+    optionEl.setAttribute('value', option)
+    datalist.appendChild(optionEl)
+  })
+  return datalist
 }

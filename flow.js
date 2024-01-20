@@ -5,10 +5,13 @@ import {
   renderContent,
   dragModule,
   setPatchCablePosition,
+  renderDatalist,
 } from './render.js'
 
-export function renderGraph(graphContainer, onConnect) {
+export function renderGraph(graphContainer, allModuleNames, onConnect, onAddModule) {
   const svg = renderSvg(graphContainer)
+  const _nodes = []
+  const _edges = []
   let currentOutput
   let currentInput
 
@@ -17,11 +20,11 @@ export function renderGraph(graphContainer, onConnect) {
     if (!id) return
 
     if (currentOutput) {
-      currentOutput.element.style.fill = ''
+      currentOutput.element.classList.remove('active')
     }
 
     if (currentInput) {
-      currentInput.element.style.fill = ''
+      currentInput.element.classList.remove('active')
     }
 
     if (id.includes('input')) {
@@ -40,21 +43,18 @@ export function renderGraph(graphContainer, onConnect) {
     }
 
     if (currentInput && currentOutput) {
-      renderPatchCable(svg, currentOutput.element, currentInput.element)
+      api.renderPatchCable(currentOutput.element, currentInput.element)
       onConnect(currentInput.element.id, currentOutput.element.id)
       currentInput = null
       currentOutput = null
     } else {
-      e.target.style.fill = '#f00'
+      e.target.classList.add('active')
     }
   }
 
-  const nodes = []
-  const edges = []
-
-  return {
+  const api = {
     renderModule: ({ id, x, y, inputsCount, label, children }) => {
-      const [container, inputs, output] = renderModule(graphContainer, id, x, y, label, inputsCount)
+      const [container, inputs, output, labelEl] = renderModule(graphContainer, id, x, y, label, inputsCount)
 
       if (children) {
         renderContent(container, children)
@@ -65,12 +65,13 @@ export function renderGraph(graphContainer, onConnect) {
         container,
         inputs,
         output,
+        label: labelEl,
       }
 
       container.addEventListener('pointerdown', (e) => onPointerDown(node, e))
 
       dragModule(container, () => {
-        const movedEdges = edges.filter(
+        const movedEdges = _edges.filter(
           (e) => inputs.includes(e.fromEl) || inputs.includes(e.toEl) || e.fromEl === output || e.toEl === output,
         )
 
@@ -79,16 +80,76 @@ export function renderGraph(graphContainer, onConnect) {
         })
       })
 
-      nodes.push(node)
+      _nodes.push(node)
+
+      return node
     },
 
     renderPatchCable: (fromEl, toEl) => {
       const path = renderPatchCable(svg, fromEl, toEl)
-      edges.push({
+      _edges.push({
         path,
         fromEl,
         toEl,
       })
     },
+
+    removeModule(id) {
+      const node = _nodes.find((n) => n.id === id)
+      if (!node) return
+
+      node.container.remove()
+      _nodes.splice(_nodes.indexOf(node), 1)
+
+      const { inputs, output } = node
+      const nodeEdges = _edges.filter(
+        (e) => inputs.includes(e.fromEl) || inputs.includes(e.toEl) || e.fromEl === output || e.toEl === output,
+      )
+
+      nodeEdges.forEach((edge) => {
+        edge.path.remove()
+        _edges.splice(_edges.indexOf(edge), 1)
+      })
+    },
   }
+
+  let isAdding
+  graphContainer.addEventListener(
+    'click',
+    (e) => {
+      if (e.target !== graphContainer) return
+      if (isAdding) return
+      isAdding = true
+
+      const id = `module-${Math.random().toString(36).slice(2)}`
+      const x = e.clientX - graphContainer.offsetLeft
+      const y = e.clientY - graphContainer.offsetTop
+      const datalist = renderDatalist(allModuleNames)
+      datalist.id = 'modules'
+      const node = api.renderModule({ id, x, y, inputsCount: 0, label: '', children: datalist })
+
+      node.label.setAttribute('list', datalist.id)
+      node.label.focus()
+
+      node.label.addEventListener('input', () => {
+        if (allModuleNames.includes(node.label.value.trim())) {
+          onAddModule({ type: node.label.value, x, y })
+          api.removeModule(id)
+          isAdding = false
+        }
+      })
+
+      node.label.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (isAdding) {
+            api.removeModule(id)
+            isAdding = false
+          }
+        }, 100)
+      })
+    },
+    { capture: true },
+  )
+
+  return api
 }
