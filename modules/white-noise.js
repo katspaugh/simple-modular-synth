@@ -16,6 +16,7 @@ export async function noise(audioContext) {
   noise.connect(gainNode)
 
   return {
+    description: 'White noise generator',
     inputs: [],
     output: () => {
       setTimeout(() => {

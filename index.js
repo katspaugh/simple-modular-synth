@@ -4,6 +4,7 @@ import * as allModules from './modules.js'
 
 async function renderApp(initialModules, initialPatchCables) {
   const audioContext = new AudioContext()
+  const sidebar = initSidebar(document.querySelector('#sidebar'))
   let modules = []
   let connections = []
 
@@ -87,15 +88,20 @@ async function renderApp(initialModules, initialPatchCables) {
     updateUrl()
   }
 
-  const graph = renderGraph(
-    document.querySelector('#graph'),
-    Object.keys(allModules),
+  const onModuleSelect = (id) => {
+    const module = modules.find((m) => m.id === id)
+    sidebar.render(module)
+  }
+
+  const graph = renderGraph({
+    graphContainer: document.querySelector('#graph'),
+    allModuleNames: Object.keys(allModules),
     onConnect,
     onDisconnect,
     onAddModule,
     onMove,
-  )
-  initSidebar(document.querySelector('#sidebar'))
+    onModuleSelect,
+  })
 
   modules = await Promise.all(initialModules.map(onAddModule))
 
@@ -114,41 +120,7 @@ async function renderApp(initialModules, initialPatchCables) {
   })
 }
 
-/*
-renderApp(
-  [
-    { id: 'osc-0', x: 50, y: 50, type: 'oscillator' },
-    { id: 'lfo-0', x: 50, y: 125, type: 'lfo' },
-    { id: 'clock-0', x: 300, y: 10, type: 'clock' },
-    { id: 'clock-1', x: 600, y: 10, type: 'clock' },
-    { id: 'adsr-0', x: 300, y: 100, type: 'adsr' },
-    { id: 'adsr-1', x: 600, y: 100, type: 'adsr' },
-    { id: 'vca-0', x: 300, y: 200, type: 'vca' },
-    { id: 'vca-1', x: 600, y: 200, type: 'vca' },
-    { id: 'lowpass-0', x: 400, y: 300, type: 'lowpass' },
-    { id: 'speakers-0', x: 700, y: 300, type: 'speakers' },
-    { id: 'cv-0', x: 50, y: 400, type: 'cv' },
-    { id: 'cv-1', x: 300, y: 400, type: 'cv' },
-    { id: 'noise-0', x: 600, y: 400, type: 'noise' },
-    { id: 'highpass-0', x: 100, y: 300, type: 'highpass' },
-    { id: 'sampleAndHold-0', x: 50, y: 200, type: 'sampleAndHold' },
-  ],
-  [
-    { from: 'osc-0-output', to: 'lowpass-0-input-0' },
-    { from: 'adsr-0-output', to: 'vca-0-input-1' },
-    { from: 'clock-0-output', to: 'adsr-0-input-0' },
-    { from: 'lowpass-0-output', to: 'vca-0-input-0' },
-    { from: 'vca-0-output', to: 'speakers-0-input-0' },
-    { from: 'lfo-0-output', to: 'cv-0-input-0' },
-    { from: 'cv-0-output', to: 'lowpass-0-input-1' },
-    { from: 'noise-0-output', to: 'sampleAndHold-0-input-0' },
-    { from: 'sampleAndHold-0-output', to: 'osc-0-input-0' },
-    { from: 'clock-0-output', to: 'sampleAndHold-0-input-1' },
-    { from: 'clock-1-output', to: 'lfo-0-input-0' },
-  ],
-)
-*/
-
+// Initialize app
 const hash = window.location.hash.slice(1)
 if (hash) {
   const data = JSON.parse(atob(hash))

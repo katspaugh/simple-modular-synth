@@ -3,7 +3,7 @@ export async function sampleAndHold(audioContext) {
   const sampleAndHold = new AudioWorkletNode(audioContext, 'sample-and-hold-processor')
 
   return {
-    label: 's&h',
+    description: 'Sample and hold',
     inputs: [() => sampleAndHold.parameters.get('source'), () => sampleAndHold.parameters.get('trigger')],
     output: () => sampleAndHold,
   }

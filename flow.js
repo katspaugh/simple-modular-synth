@@ -8,14 +8,30 @@ import {
   renderDatalist,
 } from './render.js'
 
-export function renderGraph(graphContainer, allModuleNames, onConnect, onDisconnect, onAddModule, onMove) {
+export function renderGraph({
+  graphContainer,
+  allModuleNames,
+  onConnect,
+  onDisconnect,
+  onAddModule,
+  onMove,
+  onModuleSelect,
+}) {
   const svg = renderSvg(graphContainer)
   const _nodes = []
   const _edges = []
+  let currentModule
   let currentOutput
   let currentInput
 
   const onPointerDown = (node, e) => {
+    if (currentModule) {
+      currentModule.container.classList.remove('active')
+    }
+    currentModule = node
+    currentModule.container.classList.add('active')
+    onModuleSelect(node.id)
+
     const id = e.target.getAttribute('id')
     if (!id) return
 
@@ -90,17 +106,19 @@ export function renderGraph(graphContainer, allModuleNames, onConnect, onDisconn
     renderPatchCable: (fromEl, toEl) => {
       const path = renderPatchCable(svg, fromEl, toEl)
 
+      const edge = {
+        path,
+        fromEl,
+        toEl,
+      }
+
       path.addEventListener('click', (e) => {
         onDisconnect(toEl.id, fromEl.id)
         path.remove()
         _edges.splice(_edges.indexOf(edge), 1)
       })
 
-      _edges.push({
-        path,
-        fromEl,
-        toEl,
-      })
+      _edges.push(edge)
     },
 
     removeModule(id) {

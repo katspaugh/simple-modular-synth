@@ -14,7 +14,7 @@ export function cv(audioContext, initialValue = 0.1) {
   }
 
   return {
-    label: 'attenuverter',
+    description: 'Constant signal source',
     render: () => range(initialValue, setValue, -1, 1, 0.01),
     inputs: [() => mixer],
     output: () => mixer,

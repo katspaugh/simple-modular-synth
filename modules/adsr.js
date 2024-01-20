@@ -20,10 +20,11 @@ export async function adsr(audioContext) {
   const releaseParam = adsrNode.parameters.get('release')
 
   return {
+    description: 'ADSR envelope',
     inputs: [() => triggerParam, () => attackParam, () => releaseParam],
     output: () => adsrNode,
     render: () => {
-      const S = 100
+      const S = 100 // scale
       const attack = range(attackParam.value * S, (newValue) => (attackParam.value = newValue / S), 0, S, 1)
       const release = range(releaseParam.value * S, (newValue) => (releaseParam.value = newValue / S), 0, S, 1)
       return [attack, release]

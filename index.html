@@ -21,6 +21,10 @@
         text-align: center;
         border: 1px solid #aaa;
       }
+      .module.active,
+      .module:hover {
+        border: 1px solid #aaf;
+      }
       .module button {
         display: block;
         position: absolute;
@@ -58,12 +62,13 @@
       }
       path {
         fill: none;
-        stroke: #aaa;
-        stroke-width: 2px;
+        stroke: #dfdfdf;
+        stroke-width: 4px;
         pointer-events: all;
+        cursor: pointer;
       }
       path:hover {
-        stroke: #000;
+        stroke: #aaf;
       }
       body {
         display: flex;
@@ -79,8 +84,10 @@
       #sidebar {
         flex: 0 0 300px;
         background-color: #eee;
-        padding: 10px;
+        padding: 0 2rem;
         overflow-y: scroll;
+        position: relative;
+        z-index: 3;
       }
     </style>
   </head>

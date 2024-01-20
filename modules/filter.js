@@ -17,7 +17,8 @@ export function filter(audioContext, type = 'lowpass', freq = 440) {
   qGainNode.connect(filterNode.Q)
 
   return {
-    render: () => range(freq, (newValue) => (filterNode.frequency.value = newValue), 1, 3000, 1),
+    description: 'Filter',
+    render: () => range(freq, (newValue) => (filterNode.frequency.value = newValue), 20, 2000, 10),
     inputs: [() => filterNode, () => freqGainNode, () => qGainNode],
     output: () => filterNode,
   }

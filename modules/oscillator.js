@@ -15,8 +15,9 @@ export function oscillator(audioContext, initialFrequency = 220, type = 'triangl
   }
 
   return {
+    description: 'Oscillator',
     render: () => range(0, setValue, -4800, 4800, 1),
-    inputs: [(node) => freqGainNode],
+    inputs: [() => freqGainNode],
     output: () => {
       setTimeout(() => {
         if (!started) {
