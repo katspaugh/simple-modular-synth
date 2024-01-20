@@ -1,8 +1,8 @@
-import { oscillator } from './oscillator.js'
+import { sine } from './sine.js'
 
-export function lfo(audioContext, freq = 1, type = 'sine') {
+export function lfo(audioContext, freq = 1) {
   return {
-    ...oscillator(audioContext, freq, type),
+    ...sine(audioContext, freq),
     description: 'Low frequency oscillator',
   }
 }

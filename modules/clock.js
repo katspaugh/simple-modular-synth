@@ -1,8 +1,8 @@
-import { lfo } from './lfo.js'
+import { square } from './square.js'
 
 export function clock(audioContext, freq = 2) {
   return {
-    ...lfo(audioContext, freq, 'square'),
+    ...square(audioContext, freq),
     description: 'Pulse generator',
   }
 }

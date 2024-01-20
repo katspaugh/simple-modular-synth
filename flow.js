@@ -14,6 +14,7 @@ export function renderGraph({
   onConnect,
   onDisconnect,
   onAddModule,
+  onRemoveModule,
   onMove,
   onModuleSelect,
 }) {
@@ -24,7 +25,7 @@ export function renderGraph({
   let currentOutput
   let currentInput
 
-  const onPointerDown = (node, e) => {
+  const onModuleClick = (node, e) => {
     if (currentModule) {
       currentModule.container.classList.remove('active')
     }
@@ -68,6 +69,61 @@ export function renderGraph({
     }
   }
 
+  let isAdding
+  const onGraphClick = (e) => {
+    if (e.target !== graphContainer) return
+    if (isAdding) return
+    isAdding = true
+
+    const id = `module-${Math.random().toString(36).slice(2)}`
+    const x = e.clientX - graphContainer.offsetLeft
+    const y = e.clientY - graphContainer.offsetTop
+    const datalist = renderDatalist(allModuleNames)
+    datalist.id = 'modules'
+    const node = api.renderModule({ id, x, y, inputsCount: 0, label: '', children: datalist })
+
+    node.label.setAttribute('list', datalist.id)
+    node.label.focus()
+
+    node.label.addEventListener('input', () => {
+      if (allModuleNames.includes(node.label.value.trim())) {
+        onAddModule({ type: node.label.value, x, y })
+        api.removeModule(id)
+        isAdding = false
+      }
+    })
+
+    node.label.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (isAdding) {
+          api.removeModule(id)
+          isAdding = false
+        }
+      }, 100)
+    })
+  }
+
+  const onModuleDrag = (node) => {
+    const { id, container, inputs, output } = node
+    const x = container.offsetLeft
+    const y = container.offsetTop
+
+    const movedEdges = _edges.filter(
+      (e) => inputs.includes(e.fromEl) || inputs.includes(e.toEl) || e.fromEl === output || e.toEl === output,
+    )
+
+    movedEdges.forEach((edge) => {
+      setPatchCablePosition(edge.path, edge.fromEl, edge.toEl)
+    })
+
+    onMove(id, x, y)
+
+    if (x < -20 || y < -20) {
+      onRemoveModule(id)
+      api.removeModule(id)
+    }
+  }
+
   const api = {
     renderModule: ({ id, x, y, inputsCount, label, children }) => {
       const [container, inputs, output, labelEl] = renderModule(graphContainer, id, x, y, label, inputsCount)
@@ -84,18 +140,10 @@ export function renderGraph({
         label: labelEl,
       }
 
-      container.addEventListener('pointerdown', (e) => onPointerDown(node, e))
+      container.addEventListener('click', (e) => onModuleClick(node, e))
 
       dragModule(container, () => {
-        const movedEdges = _edges.filter(
-          (e) => inputs.includes(e.fromEl) || inputs.includes(e.toEl) || e.fromEl === output || e.toEl === output,
-        )
-
-        movedEdges.forEach((edge) => {
-          setPatchCablePosition(edge.path, edge.fromEl, edge.toEl)
-        })
-
-        onMove(id, container.offsetLeft, container.offsetTop)
+        onModuleDrag(node)
       })
 
       _nodes.push(node)
@@ -140,43 +188,7 @@ export function renderGraph({
     },
   }
 
-  let isAdding
-  graphContainer.addEventListener(
-    'click',
-    (e) => {
-      if (e.target !== graphContainer) return
-      if (isAdding) return
-      isAdding = true
-
-      const id = `module-${Math.random().toString(36).slice(2)}`
-      const x = e.clientX - graphContainer.offsetLeft
-      const y = e.clientY - graphContainer.offsetTop
-      const datalist = renderDatalist(allModuleNames)
-      datalist.id = 'modules'
-      const node = api.renderModule({ id, x, y, inputsCount: 0, label: '', children: datalist })
-
-      node.label.setAttribute('list', datalist.id)
-      node.label.focus()
-
-      node.label.addEventListener('input', () => {
-        if (allModuleNames.includes(node.label.value.trim())) {
-          onAddModule({ type: node.label.value, x, y })
-          api.removeModule(id)
-          isAdding = false
-        }
-      })
-
-      node.label.addEventListener('blur', () => {
-        setTimeout(() => {
-          if (isAdding) {
-            api.removeModule(id)
-            isAdding = false
-          }
-        }, 100)
-      })
-    },
-    { capture: true },
-  )
+  graphContainer.addEventListener('click', onGraphClick, { capture: true })
 
   return api
 }

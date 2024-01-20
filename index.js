@@ -50,9 +50,7 @@ async function renderApp(initialModules, initialPatchCables) {
       throw new Error(`Module not found: ${inputModuleId} or ${outputModuleId}`)
     }
     outputModule.output().connect(inputModule.inputs[inputIndex]())
-
     connections.push({ from: outputId, to: inputId })
-
     updateUrl()
   }
 
@@ -65,9 +63,7 @@ async function renderApp(initialModules, initialPatchCables) {
       throw new Error(`Module not found: ${inputModuleId} or ${outputModuleId}`)
     }
     outputModule.output().disconnect(inputModule.inputs[inputIndex]())
-
     connections = connections.filter((c) => c.from !== outputId || c.to !== inputId)
-
     updateUrl()
   }
 
@@ -78,11 +74,22 @@ async function renderApp(initialModules, initialPatchCables) {
     return mod
   }
 
+  const onRemoveModule = (id) => {
+    const module = modules.find((m) => m.id === id)
+    if (!module) return
+    module.output().disconnect()
+    module.inputs.forEach((input) => {
+      const inputNode = input()
+      inputNode.disconnect && inputNode.disconnect()
+    })
+    modules = modules.filter((m) => m.id !== id)
+    connections = connections.filter((c) => c.from.split('-output')[0] !== id && c.to.split('-input')[0] !== id)
+    updateUrl()
+  }
+
   const onMove = (id, x, y) => {
     const module = modules.find((m) => m.id === id)
-    if (!module) {
-      throw new Error(`Module not found: ${id}`)
-    }
+    if (!module) return
     module.x = x
     module.y = y
     updateUrl()
@@ -99,6 +106,7 @@ async function renderApp(initialModules, initialPatchCables) {
     onConnect,
     onDisconnect,
     onAddModule,
+    onRemoveModule,
     onMove,
     onModuleSelect,
   })

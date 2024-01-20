@@ -1,6 +1,6 @@
 import { range } from '../ui/range.js'
 
-export function cv(audioContext, initialValue = 0.1) {
+export function offset(audioContext, initialValue = 0) {
   const constantSource = audioContext.createConstantSource()
   constantSource.offset.value = initialValue
   constantSource.start()
@@ -14,7 +14,7 @@ export function cv(audioContext, initialValue = 0.1) {
   }
 
   return {
-    description: 'Constant signal source',
+    description: 'Add or subtract a constant value',
     render: () => range(initialValue, setValue, -1, 1, 0.01),
     inputs: [() => mixer],
     output: () => mixer,

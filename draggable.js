@@ -5,6 +5,7 @@ export function makeDraggable(element, onDrag, onStart, onEnd, threshold = 3) {
 
   const onPointerDown = (event) => {
     if (event.currentTarget !== event.target) return
+    if (event.button !== 0) return
 
     event.preventDefault()
     event.stopPropagation()
