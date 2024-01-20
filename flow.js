@@ -8,7 +8,7 @@ import {
   renderDatalist,
 } from './render.js'
 
-export function renderGraph(graphContainer, allModuleNames, onConnect, onAddModule) {
+export function renderGraph(graphContainer, allModuleNames, onConnect, onDisconnect, onAddModule, onMove) {
   const svg = renderSvg(graphContainer)
   const _nodes = []
   const _edges = []
@@ -78,6 +78,8 @@ export function renderGraph(graphContainer, allModuleNames, onConnect, onAddModu
         movedEdges.forEach((edge) => {
           setPatchCablePosition(edge.path, edge.fromEl, edge.toEl)
         })
+
+        onMove(id, container.offsetLeft, container.offsetTop)
       })
 
       _nodes.push(node)
@@ -87,6 +89,13 @@ export function renderGraph(graphContainer, allModuleNames, onConnect, onAddModu
 
     renderPatchCable: (fromEl, toEl) => {
       const path = renderPatchCable(svg, fromEl, toEl)
+
+      path.addEventListener('click', (e) => {
+        onDisconnect(toEl.id, fromEl.id)
+        path.remove()
+        _edges.splice(_edges.indexOf(edge), 1)
+      })
+
       _edges.push({
         path,
         fromEl,

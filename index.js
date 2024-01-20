@@ -55,6 +55,21 @@ async function renderApp(initialModules, initialPatchCables) {
     updateUrl()
   }
 
+  const onDisconnect = (inputId, outputId) => {
+    const [inputModuleId, inputIndex] = inputId.split('-input-')
+    const outputModuleId = outputId.split('-output')[0]
+    const inputModule = modules.find((m) => m.id === inputModuleId)
+    const outputModule = modules.find((m) => m.id === outputModuleId)
+    if (!inputModule || !outputModule) {
+      throw new Error(`Module not found: ${inputModuleId} or ${outputModuleId}`)
+    }
+    outputModule.output().disconnect(inputModule.inputs[inputIndex]())
+
+    connections = connections.filter((c) => c.from !== outputId || c.to !== inputId)
+
+    updateUrl()
+  }
+
   const onAddModule = async (module) => {
     const mod = await createModule(module)
     modules.push(mod)
@@ -62,7 +77,24 @@ async function renderApp(initialModules, initialPatchCables) {
     return mod
   }
 
-  const graph = renderGraph(document.querySelector('#graph'), Object.keys(allModules), onConnect, onAddModule)
+  const onMove = (id, x, y) => {
+    const module = modules.find((m) => m.id === id)
+    if (!module) {
+      throw new Error(`Module not found: ${id}`)
+    }
+    module.x = x
+    module.y = y
+    updateUrl()
+  }
+
+  const graph = renderGraph(
+    document.querySelector('#graph'),
+    Object.keys(allModules),
+    onConnect,
+    onDisconnect,
+    onAddModule,
+    onMove,
+  )
   initSidebar(document.querySelector('#sidebar'))
 
   modules = await Promise.all(initialModules.map(onAddModule))

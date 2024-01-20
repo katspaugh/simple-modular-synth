@@ -17,7 +17,7 @@
         border-radius: 4px;
         padding: 10px;
         position: absolute;
-        z-index: 1;
+        z-index: 2;
         text-align: center;
         border: 1px solid #aaa;
       }
@@ -59,9 +59,12 @@
       path {
         fill: none;
         stroke: #aaa;
-        stroke-width: 1px;
+        stroke-width: 2px;
+        pointer-events: all;
       }
-
+      path:hover {
+        stroke: #000;
+      }
       body {
         display: flex;
         flex-wrap: nowrap;
