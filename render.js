@@ -16,14 +16,16 @@ export function renderModule(parentEl, id, x, y, label, numInputs = 0) {
   }
 
   // Render inputs
+  const inputs = []
   for (let i = 0; i < numInputs; i++) {
     const button = document.createElement('button')
     Object.assign(button.style, {
       left: '-5px',
       top: `${(i + 1) * 20}px`,
     })
-    button.setAttribute('id', `module-${id}-input-${i}`)
+    button.setAttribute('id', `${id}-input-${i}`)
     div.appendChild(button)
+    inputs.push(button)
   }
 
   // Render output
@@ -33,12 +35,12 @@ export function renderModule(parentEl, id, x, y, label, numInputs = 0) {
     top: '50%',
     transform: 'translateY(-50%)',
   })
-  button.setAttribute('id', `module-${id}-output`)
+  button.setAttribute('id', `${id}-output`)
   div.appendChild(button)
 
   parentEl.appendChild(div)
 
-  return div
+  return [div, inputs, button]
 }
 
 export function dragModule(moduleEl, onDrag) {
@@ -68,8 +70,7 @@ export function renderSvg(parentEl) {
   return svg
 }
 
-export function renderPatchCable(parentSvg, fromEl, toEl) {
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+export function setPatchCablePosition(path, fromEl, toEl) {
   const fromPoint = fromEl.getBoundingClientRect()
   const toPoint = toEl.getBoundingClientRect()
   const fromX = fromPoint.left + fromPoint.width / 2
@@ -77,8 +78,13 @@ export function renderPatchCable(parentSvg, fromEl, toEl) {
   const toX = toPoint.left + toPoint.width / 2
   const toY = toPoint.top + toPoint.height / 2
   path.setAttribute('d', `M ${fromX} ${fromY} C ${fromX + 100} ${fromY} ${toX - 100} ${toY} ${toX} ${toY}`)
+}
 
+export function renderPatchCable(parentSvg, fromEl, toEl) {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  setPatchCablePosition(path, fromEl, toEl)
   parentSvg.appendChild(path)
+  return path
 }
 
 export function renderContent(parentEl, children) {
