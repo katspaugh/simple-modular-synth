@@ -1,9 +1,9 @@
-import { range } from '../ui/range.js'
+import { Range } from '../components/Range.js'
 
-export function filter(audioContext, type = 'lowpass', freq = 440) {
+export function filter(audioContext, type = 'lowpass', initialFrequency = 440) {
   const filterNode = audioContext.createBiquadFilter()
   filterNode.type = type
-  filterNode.frequency.value = freq
+  filterNode.frequency.value = initialFrequency
   filterNode.Q.value = 0
 
   // Frequency range amplifier
@@ -18,8 +18,17 @@ export function filter(audioContext, type = 'lowpass', freq = 440) {
 
   return {
     description: 'Filter',
-    render: () => range(freq, (newValue) => (filterNode.frequency.value = newValue), 20, 2000, 10),
     inputs: [() => filterNode, () => freqGainNode, () => qGainNode],
     output: () => filterNode,
+    render: () =>
+      Range().render({
+        value: initialFrequency,
+        min: 20,
+        max: 2000,
+        step: 1,
+        onInput: (value) => {
+          filterNode.frequency.value = value
+        },
+      }),
   }
 }

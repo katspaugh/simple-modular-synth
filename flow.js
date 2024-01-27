@@ -1,15 +1,10 @@
-import {
-  renderSvg,
-  renderModule,
-  renderPatchCable,
-  renderContent,
-  dragModule,
-  setPatchCablePosition,
-  renderDatalist,
-} from './render.js'
+import { Graph } from './components/Graph.js'
+import { Node } from './components/Node.js'
+import { Edge } from './components/Edge.js'
+import { DatalistInput } from './components/DatalistInput.js'
 
 export function renderGraph({
-  graphContainer,
+  appContainer,
   allModuleNames,
   onConnect,
   onDisconnect,
@@ -18,9 +13,10 @@ export function renderGraph({
   onMove,
   onModuleSelect,
 }) {
-  const svg = renderSvg(graphContainer)
-  const _nodes = []
-  const _edges = []
+  const graph = Graph()
+
+  let _nodes = []
+  let _edges = []
   let currentModule
   let currentOutput
   let currentInput
@@ -69,51 +65,55 @@ export function renderGraph({
     }
   }
 
-  let isAdding
-  const onGraphClick = (e) => {
-    if (e.target !== graphContainer) return
-    if (isAdding) return
-    isAdding = true
-
-    const id = `module-${Math.random().toString(36).slice(2)}`
-    const x = e.clientX - graphContainer.offsetLeft
-    const y = e.clientY - graphContainer.offsetTop
-    const datalist = renderDatalist(allModuleNames)
-    datalist.id = 'modules'
-    const node = api.renderModule({ id, x, y, inputsCount: 0, label: '', children: datalist })
-
-    node.label.setAttribute('list', datalist.id)
-    node.label.focus()
-
-    node.label.addEventListener('input', () => {
-      if (allModuleNames.includes(node.label.value.trim())) {
-        onAddModule({ type: node.label.value, x, y })
-        api.removeModule(id)
-        isAdding = false
-      }
-    })
-
-    node.label.addEventListener('blur', () => {
-      setTimeout(() => {
-        if (isAdding) {
-          api.removeModule(id)
-          isAdding = false
-        }
-      }, 100)
-    })
+  const findEdges = (inputs, output) => {
+    return _edges.filter(
+      (edge) =>
+        inputs.includes(edge.fromEl) || inputs.includes(edge.toEl) || edge.fromEl === output || edge.toEl === output,
+    )
   }
 
-  const onModuleDrag = (node) => {
-    const { id, container, inputs, output } = node
-    const x = container.offsetLeft
-    const y = container.offsetTop
+  let _isAdding
+  const onGraphClick = (e) => {
+    if (e.target !== graph.container) return
+    if (_isAdding) return
+    _isAdding = true
 
-    const movedEdges = _edges.filter(
-      (e) => inputs.includes(e.fromEl) || inputs.includes(e.toEl) || e.fromEl === output || e.toEl === output,
-    )
+    const id = `module-${Math.random().toString(36).slice(2)}`
+    const x = e.clientX - appContainer.offsetLeft
+    const y = e.clientY - appContainer.offsetTop
+    let node
+
+    const datalistInput = DatalistInput().render({
+      options: allModuleNames,
+      onChange: (e) => {
+        const { value } = e.target
+        if (allModuleNames.includes(value.trim())) {
+          node.remove()
+          onAddModule({ type: value, x, y })
+          _isAdding = false
+        }
+      },
+      onBlur: () => {
+        setTimeout(() => {
+          if (_isAdding) {
+            node.remove()
+            _isAdding = false
+          }
+        }, 100)
+      },
+    })
+
+    node = Node().render({ id, x, y, inputsCount: 0, label: '', children: datalistInput })
+    graph.render({ node })
+  }
+
+  const onModuleDrag = (node, x, y) => {
+    const { id, inputs, output } = node
+
+    const movedEdges = findEdges(inputs, output)
 
     movedEdges.forEach((edge) => {
-      setPatchCablePosition(edge.path, edge.fromEl, edge.toEl)
+      edge.edge.render({ fromEl: edge.fromEl, toEl: edge.toEl })
     })
 
     onMove(id, x, y)
@@ -126,47 +126,50 @@ export function renderGraph({
 
   const api = {
     renderModule: ({ id, x, y, inputsCount, label, children }) => {
-      const [container, inputs, output, labelEl] = renderModule(graphContainer, id, x, y, label, inputsCount)
+      const node = Node()
 
-      if (children) {
-        renderContent(container, children)
-      }
-
-      const node = {
+      const nodeItem = {
         id,
-        container,
-        inputs,
-        output,
-        label: labelEl,
+        container: node.container,
+        inputs: node.inputs,
+        output: node.output,
       }
+      _nodes.push(nodeItem)
 
-      container.addEventListener('click', (e) => onModuleClick(node, e))
-
-      dragModule(container, () => {
-        onModuleDrag(node)
+      const nodeContainer = node.render({
+        id,
+        x,
+        y,
+        label,
+        inputsCount,
+        children,
+        onClick: (e) => onModuleClick(nodeItem, e),
+        onDrag: (x, y) => onModuleDrag(nodeItem, x, y),
       })
 
-      _nodes.push(node)
-
-      return node
+      graph.render({ node: nodeContainer })
     },
 
     renderPatchCable: (fromEl, toEl) => {
-      const path = renderPatchCable(svg, fromEl, toEl)
+      const edge = Edge()
 
-      const edge = {
-        path,
-        fromEl,
-        toEl,
-      }
-
-      path.addEventListener('click', (e) => {
-        onDisconnect(toEl.id, fromEl.id)
-        path.remove()
-        _edges.splice(_edges.indexOf(edge), 1)
+      graph.render({
+        edge: edge.render({
+          fromEl,
+          toEl,
+          onClick: () => {
+            edge.container.remove()
+            _edges = _edges.filter((item) => item.edge !== edge)
+            onDisconnect(toEl.id, fromEl.id)
+          },
+        }),
       })
 
-      _edges.push(edge)
+      _edges.push({
+        fromEl,
+        toEl,
+        edge,
+      })
     },
 
     removeModule(id) {
@@ -174,21 +177,20 @@ export function renderGraph({
       if (!node) return
 
       node.container.remove()
-      _nodes.splice(_nodes.indexOf(node), 1)
+      _nodes = _nodes.filter((item) => item !== node)
 
       const { inputs, output } = node
-      const nodeEdges = _edges.filter(
-        (e) => inputs.includes(e.fromEl) || inputs.includes(e.toEl) || e.fromEl === output || e.toEl === output,
-      )
+      const nodeEdges = findEdges(inputs, output)
 
       nodeEdges.forEach((edge) => {
-        edge.path.remove()
+        edge.edge.container.remove()
         _edges.splice(_edges.indexOf(edge), 1)
       })
     },
   }
 
-  graphContainer.addEventListener('click', onGraphClick, { capture: true })
+  graph.container.addEventListener('click', onGraphClick, { capture: true })
+  appContainer.appendChild(graph.container)
 
   return api
 }

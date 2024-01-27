@@ -31,7 +31,7 @@ class AdsrProcessor extends AudioWorkletProcessor {
     const decRatio = 1 - Math.pow(0.36787944, 1 / (sampleRate * dec))
     const relRatio = 1 - Math.pow(0.36787944, 1 / (sampleRate * rel))
     if (trigs.length == 1) this._trig = trigs[0]
-    for (let i = 0; i < output[0].length; ++i) {
+    for (let i = 0, len = output[0] ? output[0].length : 0; i < len; ++i) {
       if (trigs.length > 1) this._trig = trigs[i]
       if (this._trig >= 0.5) {
         if (this._lasttrig < 0.5) this._phase = 1
@@ -54,4 +54,4 @@ class AdsrProcessor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('adsr-processor', AdsrProcessor)
+registerProcessor('envelope-processor', AdsrProcessor)

@@ -1,4 +1,4 @@
-import { range } from '../ui/range.js'
+import { Range } from '../components/Range.js'
 
 export function oscillator(audioContext, initialFrequency = 220, type = 'triangle') {
   const oscillator = audioContext.createOscillator()
@@ -10,13 +10,8 @@ export function oscillator(audioContext, initialFrequency = 220, type = 'triangl
   freqGainNode.gain.value = 1000 // +- 1000 Hz
   freqGainNode.connect(oscillator.frequency)
 
-  const setValue = (newValue) => {
-    oscillator.detune.value = newValue
-  }
-
   return {
     description: 'Oscillator',
-    render: () => range(0, setValue, -4800, 4800, 1),
     inputs: [() => freqGainNode],
     output: () => {
       setTimeout(() => {
@@ -27,5 +22,15 @@ export function oscillator(audioContext, initialFrequency = 220, type = 'triangl
       }, 0)
       return oscillator
     },
+    render: () =>
+      Range().render({
+        value: 0,
+        min: -4800,
+        max: 4800,
+        step: 1,
+        onInput: (value) => {
+          oscillator.detune.value = value
+        },
+      }),
   }
 }

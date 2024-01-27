@@ -18,7 +18,7 @@ class SampleAndHoldProcessor extends AudioWorkletProcessor {
     this.trig = trig
 
     const output = outputs[0]
-    for (let i = 0; i < output[0].length; ++i) {
+    for (let i = 0, len = output[0] ? output[0].length : 0; i < len; i++) {
       output[0][i] = this.value
     }
 

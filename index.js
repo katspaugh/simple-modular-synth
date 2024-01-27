@@ -1,12 +1,31 @@
 import { renderGraph } from './flow.js'
-import { initSidebar } from './sidebar.js'
+import { Sidebar } from './components/Sidebar.js'
+import { Range } from './components/Range.js'
+import { getHashData, setHashData } from './hash.js'
 import * as allModules from './modules.js'
 
-async function renderApp(initialModules, initialPatchCables) {
+function initWebAudio() {
   const audioContext = new AudioContext()
-  const sidebar = initSidebar(document.querySelector('#sidebar'))
-  let modules = []
-  let connections = []
+
+  document.addEventListener('click', (e) => {
+    if (audioContext.state === 'suspended') {
+      audioContext.resume()
+    }
+  })
+
+  return audioContext
+}
+
+async function renderApp(initialData) {
+  const audioContext = initWebAudio()
+  const appContainer = document.querySelector('#app')
+  const sidebar = Sidebar()
+  appContainer.appendChild(sidebar.container)
+
+  let _modules = []
+  let _connections = []
+
+  const findModule = (id) => _modules.find((m) => m.id === id)
 
   const createModule = async ({ type, x, y, id = `${type}-${Date.now()}` }) => {
     if (!allModules[type]) {
@@ -21,7 +40,7 @@ async function renderApp(initialModules, initialPatchCables) {
       y,
       label: mod.label || allModules[type].name,
       inputsCount: mod.inputs.length,
-      children: mod.render ? mod.render() : undefined,
+      children: mod.render ? mod.render() : null,
     })
 
     return {
@@ -35,60 +54,62 @@ async function renderApp(initialModules, initialPatchCables) {
 
   const updateUrl = () => {
     const data = {
-      modules: modules.map(({ id, type, x, y }) => ({ id, type, x, y })),
-      connections,
+      modules: _modules.map(({ id, type, x, y }) => ({ id, type, x, y })),
+      connections: _connections,
     }
-    window.location.hash = btoa(JSON.stringify(data))
+    setHashData(data)
+  }
+
+  const updateConnection = (inputId, outputId, disconnect = false) => {
+    const [inputModuleId, inputIndex] = inputId.split('-input-')
+    const outputModuleId = outputId.split('-output')[0]
+    const inputModule = findModule(inputModuleId)
+    const outputModule = findModule(outputModuleId)
+    if (!inputModule || !outputModule) {
+      throw new Error(`Module not found: ${inputModuleId} or ${outputModuleId}`)
+    }
+    const output = outputModule.output()
+    const input = inputModule.inputs[inputIndex]()
+    if (disconnect) {
+      output.disconnect(input)
+      _connections = _connections.filter((c) => c.from !== outputId || c.to !== inputId)
+    } else {
+      output.connect(input)
+      _connections.push({ from: outputId, to: inputId })
+    }
+    updateUrl()
   }
 
   const onConnect = (inputId, outputId) => {
-    const [inputModuleId, inputIndex] = inputId.split('-input-')
-    const outputModuleId = outputId.split('-output')[0]
-    const inputModule = modules.find((m) => m.id === inputModuleId)
-    const outputModule = modules.find((m) => m.id === outputModuleId)
-    if (!inputModule || !outputModule) {
-      throw new Error(`Module not found: ${inputModuleId} or ${outputModuleId}`)
-    }
-    outputModule.output().connect(inputModule.inputs[inputIndex]())
-    connections.push({ from: outputId, to: inputId })
-    updateUrl()
+    updateConnection(inputId, outputId)
   }
 
   const onDisconnect = (inputId, outputId) => {
-    const [inputModuleId, inputIndex] = inputId.split('-input-')
-    const outputModuleId = outputId.split('-output')[0]
-    const inputModule = modules.find((m) => m.id === inputModuleId)
-    const outputModule = modules.find((m) => m.id === outputModuleId)
-    if (!inputModule || !outputModule) {
-      throw new Error(`Module not found: ${inputModuleId} or ${outputModuleId}`)
-    }
-    outputModule.output().disconnect(inputModule.inputs[inputIndex]())
-    connections = connections.filter((c) => c.from !== outputId || c.to !== inputId)
-    updateUrl()
+    updateConnection(inputId, outputId, true)
   }
 
   const onAddModule = async (module) => {
     const mod = await createModule(module)
-    modules.push(mod)
+    _modules.push(mod)
     updateUrl()
     return mod
   }
 
   const onRemoveModule = (id) => {
-    const module = modules.find((m) => m.id === id)
+    const module = findModule(id)
     if (!module) return
     module.output().disconnect()
     module.inputs.forEach((input) => {
       const inputNode = input()
       inputNode.disconnect && inputNode.disconnect()
     })
-    modules = modules.filter((m) => m.id !== id)
-    connections = connections.filter((c) => c.from.split('-output')[0] !== id && c.to.split('-input')[0] !== id)
+    _modules = _modules.filter((m) => m.id !== id)
+    _connections = _connections.filter((c) => c.from.split('-output')[0] !== id && c.to.split('-input')[0] !== id)
     updateUrl()
   }
 
   const onMove = (id, x, y) => {
-    const module = modules.find((m) => m.id === id)
+    const module = findModule(id)
     if (!module) return
     module.x = x
     module.y = y
@@ -96,12 +117,12 @@ async function renderApp(initialModules, initialPatchCables) {
   }
 
   const onModuleSelect = (id) => {
-    const module = modules.find((m) => m.id === id)
+    const module = findModule(id)
     sidebar.render(module)
   }
 
   const graph = renderGraph({
-    graphContainer: document.querySelector('#graph'),
+    appContainer,
     allModuleNames: Object.keys(allModules),
     onConnect,
     onDisconnect,
@@ -111,28 +132,15 @@ async function renderApp(initialModules, initialPatchCables) {
     onModuleSelect,
   })
 
-  modules = await Promise.all(initialModules.map(onAddModule))
+  _modules = await Promise.all(initialData.modules.map(onAddModule))
 
-  initialPatchCables.forEach((cable) => {
+  initialData.connections.forEach((cable) => {
     const fromEl = document.querySelector(`#${cable.from}`)
     const toEl = document.querySelector(`#${cable.to}`)
     graph.renderPatchCable(fromEl, toEl)
-
     onConnect(cable.to, cable.from)
-  })
-
-  document.addEventListener('click', (e) => {
-    if (audioContext.state === 'suspended') {
-      audioContext.resume()
-    }
   })
 }
 
 // Initialize app
-const hash = window.location.hash.slice(1)
-if (hash) {
-  const data = JSON.parse(atob(hash))
-  renderApp(data.modules, data.connections)
-} else {
-  renderApp([{ id: 'speakers-0', x: 700, y: 50, type: 'speakers' }], [])
-}
+renderApp(getHashData() || { modules: [{ id: 'speakers-0', x: 700, y: 50, type: 'speakers' }], connections: [] })

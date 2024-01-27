@@ -7,7 +7,7 @@ export async function noise(audioContext) {
   constantSource.connect(gainNode.gain)
   let started = false
 
-  await audioContext.audioWorklet.addModule('/modules/white-noise-processor.js')
+  await audioContext.audioWorklet.addModule('/web-audio-nodes/white-noise-processor.js')
   const noise = new AudioWorkletNode(audioContext, 'white-noise-processor', {
     numberOfInputs: 0,
     numberOfOutputs: 1,

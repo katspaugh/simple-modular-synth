@@ -10,6 +10,12 @@
         margin: 0;
         padding: 0;
       }
+      #app {
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        flex-wrap: nowrap;
+      }
       .module {
         width: 100px;
         height: 50px;
@@ -45,15 +51,7 @@
       }
       .module input {
         width: 90%;
-      }
-      .module input[readonly],
-      .module input[readonly]:focus {
-        background-color: transparent;
-        border: none;
-        text-align: center;
-        user-select: none;
-        pointer-events: none;
-        outline: none;
+        margin-top: 12px;
       }
       svg {
         position: absolute;
@@ -70,19 +68,16 @@
       path:hover {
         stroke: #aaf;
       }
-      body {
-        display: flex;
-        flex-wrap: nowrap;
-        height: 100vh;
-      }
-      #graph {
+      .graph {
+        position: relative;
         flex: 1;
         height: 100vh;
         background-size: 30px 30px;
-        background-image: radial-gradient(circle, #eee 1px, transparent 1px);
+        background-image: radial-gradient(circle, #ddd 1px, transparent 1px);
       }
-      #sidebar {
-        flex: 0 0 300px;
+      .sidebar {
+        order: 1;
+        flex: 0 0 10vw;
         background-color: #eee;
         padding: 0 2rem;
         overflow-y: scroll;
@@ -93,8 +88,7 @@
   </head>
 
   <body>
-    <div id="graph"></div>
-    <div id="sidebar"></div>
+    <div id="app"></div>
     <script type="module" src="./index.js"></script>
   </body>
 </html>

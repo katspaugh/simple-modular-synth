@@ -1,4 +1,4 @@
-import { range } from '../ui/range.js'
+import { Range } from '../components/Range.js'
 
 export function offset(audioContext, initialValue = 0) {
   const constantSource = audioContext.createConstantSource()
@@ -9,14 +9,19 @@ export function offset(audioContext, initialValue = 0) {
   mixer.gain.value = 1
   constantSource.connect(mixer)
 
-  const setValue = (newValue) => {
-    constantSource.offset.value = newValue
-  }
-
   return {
     description: 'Add or subtract a constant value',
-    render: () => range(initialValue, setValue, -1, 1, 0.01),
     inputs: [() => mixer],
     output: () => mixer,
+    render: () =>
+      Range().render({
+        value: initialValue,
+        min: -1,
+        max: 1,
+        step: 0.01,
+        onInput: (value) => {
+          constantSource.offset.value = value
+        },
+      }),
   }
 }

@@ -1,4 +1,4 @@
-import { range } from '../ui/range.js'
+import { Range } from '../components/Range.js'
 
 function makeDistortionCurve(amount) {
   const k = typeof amount === 'number' ? amount : 50
@@ -18,14 +18,19 @@ export function distortion(audioContext, initialValue = 400) {
   distortion.curve = makeDistortionCurve(initialValue)
   distortion.oversample = '4x'
 
-  const setValue = (value) => {
-    distortion.curve = makeDistortionCurve(value)
-  }
-
   return {
     description: 'Distortion',
-    render: () => range(initialValue, setValue, 100, 1000, 10),
     inputs: [() => distortion],
     output: () => distortion,
+    render: () =>
+      Range().render({
+        value: initialValue,
+        min: 100,
+        max: 1000,
+        step: 10,
+        onInput: (value) => {
+          distortion.curve = makeDistortionCurve(value)
+        },
+      }),
   }
 }

@@ -4,25 +4,25 @@ export function waveform(audioContext) {
   const timeDomainData = new Float32Array(bufferLength)
 
   return {
-    description: 'Waveform',
+    description: 'Waveform visualizer',
     inputs: [() => analyser],
     output: () => analyser,
     render: () => {
       const canvas = document.createElement('canvas')
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight / 5
+      canvas.width = 244
+      canvas.height = 80
       Object.assign(canvas.style, {
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
+        position: 'absolute',
+        left: '0',
+        bottom: '0',
         width: '100%',
-        height: '20%',
+        height: '40px',
         zIndex: 1,
         pointerEvents: 'none',
       })
       const context = canvas.getContext('2d')
       const { width, height } = canvas
-      context.strokeStyle = '#999'
+      context.strokeStyle = '#000'
 
       const onFrame = () => {
         analyser.getFloatTimeDomainData(timeDomainData)
