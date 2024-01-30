@@ -12,4 +12,4 @@
 5. Remove connections by clicking on connecting lines (patch cables)
 6. Remove modules by dragging them off the screen
 
-<img width="611" alt="Screenshot" src="https://github.com/katspaugh/simple-modular-synth/assets/381895/377fd50e-151f-4011-8892-ddd5a2283df5">
+<img width="835" alt="Screenshot 2024-01-30 at 20 08 30" src="https://github.com/katspaugh/wavesurfer.js/assets/381895/506398c8-2638-4e33-b7c6-f54edf850fc7">
