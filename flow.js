@@ -17,9 +17,15 @@ export function renderGraph({
 
   let _nodes = []
   let _edges = []
+  let currentMouseEdge
   let currentModule
   let currentOutput
   let currentInput
+
+  const bboxFromMouse = (e) => {
+    const { clientX, clientY } = e
+    return { left: clientX, top: clientY, width: 0, height: 0 }
+  }
 
   const onModuleClick = (node, e) => {
     if (currentModule) {
@@ -55,6 +61,12 @@ export function renderGraph({
       }
     }
 
+    if (currentMouseEdge) {
+      _edges = _edges.filter((item) => item.edge !== currentMouseEdge.edge)
+      currentMouseEdge.edge.container.remove()
+      currentMouseEdge = null
+    }
+
     if (currentInput && currentOutput) {
       api.renderPatchCable(currentOutput.element, currentInput.element)
       onConnect(currentInput.element.id, currentOutput.element.id)
@@ -62,6 +74,13 @@ export function renderGraph({
       currentOutput = null
     } else {
       e.target.classList.add('active')
+
+      if (currentInput || currentOutput) {
+        currentMouseEdge = api.renderPatchCable(e.target, {
+          id: 'mouse',
+          getBoundingClientRect: () => bboxFromMouse(e),
+        })
+      }
     }
   }
 
@@ -165,11 +184,15 @@ export function renderGraph({
         }),
       })
 
-      _edges.push({
+      const edgeItem = {
         fromEl,
         toEl,
         edge,
-      })
+      }
+
+      _edges.push(edgeItem)
+
+      return edgeItem
     },
 
     removeModule(id) {
@@ -191,6 +214,14 @@ export function renderGraph({
 
   graph.container.addEventListener('click', onGraphClick, { capture: true })
   appContainer.appendChild(graph.container)
+
+  document.addEventListener('mousemove', (e) => {
+    if (!currentMouseEdge) return
+    currentMouseEdge.edge.render({
+      fromEl: currentMouseEdge.fromEl,
+      toEl: { ...currentMouseEdge.toEl, getBoundingClientRect: () => bboxFromMouse(e) },
+    })
+  })
 
   return api
 }
